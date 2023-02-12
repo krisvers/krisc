@@ -64,3 +64,42 @@ push/pop:
 
 lod: // loads one byte at address into register
     lod [register], [address]
+
+translation to binary:
+
+macro instructions:
+
+mov: 0b0000
+add: 0b0001
+sub: 0b0010
+cmp: 0b0011
+jmp: 0b0100
+mul: 0b0101
+div: 0b0110
+set/clr: 0b0111
+push/pop: 0b1000
+lod: 0b1001
+
+micro instructions:
+
+if destination is memory add 0b1000
+example: to move the value in d to an address: mov [address], d -> 0b00001011 ...
+example: to subtract b from an address: add [address], b -> 0b00011010 ...
+
+if destination isn't memory pad with a 0
+example: moving value to f: mov f, [value] -> 0b00000101 ...
+
+registers in micro instructions:
+
+a: 0b000
+b: 0b001
+c: 0b010
+d: 0b011
+e: 0b100
+f: 0b101
+sp: 0b110
+bp: 0b111
+
+values:
+
+16 bit value following micro opcode
