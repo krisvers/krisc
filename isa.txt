@@ -1,0 +1,66 @@
+syntax:
+almost all instructions use this style
+[instruction] [destination], [value]
+an example is mov
+mov [dest], [value]
+however, some such as set and clr appear as different instructions: ste, stc, sto, stg, stl, and, cle, clc, clo, clg, cll
+
+instructions:
+there are 11 macro instructions; mov, add, sub, cmp, jmp, mul, div, set, push, pop, and lod
+in each of these instructions there are micro instructions, they're basically smaller variations or change up the destination/value use.
+
+mov:
+    mov [register], [immediate]
+    mov [address], [register]
+
+add:
+    add [register], [value]
+    add [address], [register]
+
+sub:
+    sub [register], [value]
+    sub [address], [register]
+
+cmp:
+    cmp [register], [value]
+    cmp [address], [register]
+
+jmp:
+    jmp [address]
+    je [address]
+    jg [address]
+    jl [address]
+    jge [address]
+    jle [address]
+    jc [address]
+    jo [address]
+    jne [address]
+    jnc [address]
+    jno [address]
+
+mul: // product ends up in the e register
+    mul [register], [value]
+    mul [address], [register]
+
+div: // quotient ends up in the f register
+    div [register], [value]
+    div [address], register
+
+set:
+    ste
+    stc
+    sto
+    stg
+    stl
+
+    cle
+    clc
+    clo
+    clg
+    cll
+
+push/pop:
+    unfunctional at the moment
+
+lod: // loads one byte at address into register
+    lod [register], [address]
