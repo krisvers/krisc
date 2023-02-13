@@ -455,8 +455,8 @@ int boot() {
     while (1) {
         print_status();
 
-        input = 0;
-        while (input != '\n') { input = getc(stdin); }
+        /*input = 0;
+        while (input != '\n') { input = getc(stdin); }*/
 
         instruction_return = run_instruction(registers.pc);
         switch (instruction_return) {
@@ -482,15 +482,35 @@ int boot() {
 }
 
 int main(int argc, char ** argv) {
-    if (argc == 2) {
-        return 0;
+    if (argc > 2) {
+        printf("Provide a binary file or no file.\n");
+        return -1;
     }
 
     memory.size = 8192;
     memory.memory_array = malloc(memory.size);
 
-    for (int i = 0; i < CODE_LENGTH; i++) {
-        memory.memory_array[i] = code[i];
+    if (argc != 2) {
+        for (int i = 0; i < CODE_LENGTH; i++) {
+            memory.memory_array[i] = code[i];
+        }
+    }
+
+    if (argc == 2) {
+        FILE * fp = fopen(argv[1], "r");
+        if (fp == NULL) {
+            printf("Could not read from file!\n");
+            return -2;
+        }
+
+        int c = 0;
+
+        for (int i = 0; c != EOF && i < memory.size; i++) {
+            c = fgetc(fp);
+            memory.memory_array[i] = c;
+        }
+        
+        fclose(fp);
     }
 
     int return_code = boot();
