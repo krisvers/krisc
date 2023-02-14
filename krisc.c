@@ -3,12 +3,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define CODE_LENGTH 512
+#define CODE_LENGTH 256
 
 #define DEFAULT_MEM_SIZE 8192
 
-uint8_t code[CODE_LENGTH] = { 0b00000110, 0x00, 0x01, 0b00000111, 0x00, 0x01, 0, 0x69, 0x00, 0b10001000, 0, 0, 0b10000001, 0, 0 };
-uint8_t stepping = 0;
+uint8_t code[CODE_LENGTH] = { 0b00010000, 0x01, 0x00, 0b00110000, 0xFF, 0x00, 0b01001000, 0, 0, 0b10101000, 0, 0 };
+uint8_t stepping = 1;
 
 struct Registers {
     uint8_t a, b, c, d;
@@ -26,6 +26,10 @@ struct Memory {
     uint16_t size;
     uint8_t * memory_array;
 } memory;
+
+struct IOPorts {
+	uint8_t * io_array;
+} io;
 
 void print_stack() {
 	for (int i = 0; registers.bp - i > registers.sp; i++) {
@@ -294,7 +298,7 @@ int run_instruction(uint16_t ptr) {
                     break;
 
                 default:
-                    break;
+                    return 3;
                     
             }
 
@@ -426,29 +430,73 @@ int run_instruction(uint16_t ptr) {
             }
 
             if ((opcode & 0b0111) >= 4) {
-                if (registers.sp >= registers.bp) {
-                    return 5;
-                }
+            	if (registers.sp >= registers.bp) {
+            		return 5;
+            	}
 
-                if (registers.sp == registers.bp - 1) {
-                    *((uint16_t *) registers_array[opcode & 0b0111]) = memory.memory_array[registers.sp++];
-                    break;
-                }
+            	if (registers.sp == registers.bp - 1) {
+            		*((uint16_t *) registers_array[opcode & 0b0111]) = memory.memory_array[++registers.sp];
+            		break;
+            	}
 
-                *((uint16_t *) registers_array[opcode & 0b0111]) = memory.memory_array[registers.sp++] << 8 | memory.memory_array[registers.sp++];
-                break;
+            	*((uint16_t *) registers_array[opcode & 0b0111]) = (memory.memory_array[registers.sp + 1]) | (memory.memory_array[registers.sp + 2] << 8);
+            	registers.sp += 2;
+            	break;
             }
 
-            *((uint8_t *) registers_array[opcode & 0b0111]) = memory.memory_array[registers.sp++];
+            if (registers.sp >= registers.bp) {
+            	return 5;
+            }
+
+            *((uint8_t *) registers_array[opcode & 0b0111]) = memory.memory_array[++registers.sp];
             break;
 
         case 9:
-            if (opcode & 0b1000) {
-                break;
-            }
-
+        	if ((opcode & 0b0111) >= 4) {
+        		*((uint16_t *) registers_array[opcode & 0b0111]) = memory.memory_array[value] | memory.memory_array[value + 1] << 8;
+        		break;
+        	}
+        	
             *((uint8_t *) registers_array[opcode & 0b0111]) = memory.memory_array[value];
             break;
+
+        case 10:
+        	if (opcode & 0b1000) {
+        		return 8;
+        	}
+
+        	return 7;
+
+        case 11:
+			if (value >= 128) {
+				return 6;
+			}
+        
+        	if (opcode & 0b1000) {
+				io.io_array[value >> 8] = value & 0b11111111;
+        		break;
+        	}
+
+			if ((opcode & 0b0111) >= 4) {
+				io.io_array[value] = *((uint16_t *) registers_array[opcode & 0b0111]);
+				break;
+			}
+
+			io.io_array[value] = *((uint8_t *) registers_array[opcode & 0b0111]);
+			break;
+
+		case 12:
+			if (value >= 128) {
+				return 6;
+			}
+
+			if ((opcode & 0b0111) >= 4) {
+				*((uint16_t *) registers_array[opcode & 0b0111]) = io.io_array[value];
+				break;
+			}
+
+			*((uint8_t *) registers_array[opcode & 0b0111]) = io.io_array[value];
+			break;
 
         default:
             return 3;
@@ -460,12 +508,11 @@ int run_instruction(uint16_t ptr) {
 int boot() {
     int instruction_return;
     char input;
-    stepping = 1;
     while (1) {
         print_status();
 
         input = 0;
-        while (input != '\n') { input = getc(stdin); if (input == 'y') { stepping = 1; break; } else if (input == 'n') { stepping = 0; break; } if (!stepping) { break; } }
+        if (stepping) { while (input != '\n') { input = getc(stdin); } }
 
 		if (registers.pc >= memory.size) {
 			return 2;
@@ -484,8 +531,14 @@ int boot() {
                 return 3;
             case 4: // divide by zero
                 return 4;
-            case 5:
+            case 5: // stack over/under flow
                 return 5;
+            case 6: // invalid io port
+            	return 6;
+            case 7:
+            	return 7;
+            case 8:
+            	return 0;
             default:
                 return 99;
         }
@@ -495,22 +548,38 @@ int boot() {
 }
 
 int main(int argc, char ** argv) {
-    if (argc > 2) {
-        printf("Provide a binary file or no file.\n");
-        return -1;
-    }
+	int file_arg = 0;
 
     memory.size = DEFAULT_MEM_SIZE;
+
+    for (int i = 1; i < argc; i++) {
+    	if (strcmp(argv[i], "-m") == 0 && argc > i) {
+    		memory.size = atoi(argv[++i]);
+    	} else if (strcmp(argv[i], "-s") == 0) {
+    		stepping = 0;
+    	} else {
+    		if (file_arg) {
+    			printf("Invalid argument %s!\n", argv[i]);
+    			return -1;
+    		}
+    		
+    		file_arg = i;
+    	}
+    }
+    
     memory.memory_array = malloc(memory.size);
 
+    io.io_array = malloc(128);
+
+start:
     if (argc != 2) {
-        for (int i = 0; i < CODE_LENGTH; i++) {
+        for (int i = 0; i < CODE_LENGTH && i < memory.size; i++) {
             memory.memory_array[i] = code[i];
         }
     }
 
-    if (argc == 2) {
-        FILE * fp = fopen(argv[1], "r");
+    if (file_arg) {
+        FILE * fp = fopen(argv[file_arg], "r");
         if (fp == NULL) {
             printf("Could not read from file!\n");
             return -2;
@@ -525,6 +594,16 @@ int main(int argc, char ** argv) {
         
         fclose(fp);
     }
+    
+	registers.a = 0;
+	registers.b = 0;
+	registers.c = 0;
+	registers.d = 0;
+	registers.e = 0;
+	registers.f = 0;
+	registers.sp = 0;
+	registers.bp = 0;
+	registers.pc = 0;
 
     int return_code = boot();
 
@@ -547,6 +626,12 @@ int main(int argc, char ** argv) {
         case 5:
             printf("Stack overflow!\n");
             return 5;
+        case 6:
+        	printf("Invalid I/O port!\n");
+        	return 6;
+        case 7:
+        	printf("Reboot!\n");
+        	goto start;
         default:
             printf("Unknown return code!\n");
             return -1;
