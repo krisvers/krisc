@@ -3,5 +3,5 @@ all: krisc
 krisc:
 	gcc krisc.c -o kriscemu -Wall
 
-kasm:
+asm:
 	gcc kasm.c -o kasm -Wall

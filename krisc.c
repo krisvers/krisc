@@ -5,7 +5,10 @@
 
 #define CODE_LENGTH 512
 
-uint8_t code[CODE_LENGTH] = {};
+#define DEFAULT_MEM_SIZE 8192
+
+uint8_t code[CODE_LENGTH] = { 0b00000110, 0x00, 0x01, 0b00000101, 0x00, 0x01,  };
+uint8_t stepping = 0;
 
 struct Registers {
     uint8_t a, b, c, d;
@@ -26,8 +29,8 @@ struct Memory {
 
 void print_status() {
     system("clear");
-    printf("a: %x\tb: %x\tc: %x\td: %x\te: %x\tf: %x\nsp: %x\tbp: %x\tpc: %x\nopcode: %x\tvalue: %x\nerror: %x\tcarry: %x\toverflow: %x\tgreater: %x\tlesser: %x\n",
-    registers.a, registers.b, registers.c, registers.d, registers.e, registers.f, registers.sp, registers.bp, registers.pc, memory.memory_array[registers.pc], memory.memory_array[registers.pc + 1] | memory.memory_array[registers.pc + 2] << 8, flags.error, flags.carry, flags.overflow, flags.greater, flags.lesser);
+    printf("a: %x\tb: %x\tc: %x\td: %x\te: %x\tf: %x\nsp: %x\tbp: %x\tpc: %x\nopcode: %x\tvalue: %x\nerror: %x\tcarry: %x\toverflow: %x\tgreater: %x\tlesser: %x\nmem size: %x bytes\nstepping %x\n",
+    registers.a, registers.b, registers.c, registers.d, registers.e, registers.f, registers.sp, registers.bp, registers.pc, memory.memory_array[registers.pc], memory.memory_array[registers.pc + 1] | memory.memory_array[registers.pc + 2] << 8, flags.error, flags.carry, flags.overflow, flags.greater, flags.lesser, memory.size, stepping);
 }
 
 /*
@@ -452,11 +455,16 @@ int run_instruction(uint16_t ptr) {
 int boot() {
     int instruction_return;
     char input;
+    stepping = 1;
     while (1) {
         print_status();
 
-        /*input = 0;
-        while (input != '\n') { input = getc(stdin); }*/
+        input = 0;
+        while (input != '\n') { input = getc(stdin); if (input == 'y') { stepping = 1; break; } else if (input == 'n') { stepping = 0; break; } if (!stepping) { break; } }
+
+		if (registers.pc >= memory.size) {
+			return 2;
+		}
 
         instruction_return = run_instruction(registers.pc);
         switch (instruction_return) {
@@ -487,7 +495,7 @@ int main(int argc, char ** argv) {
         return -1;
     }
 
-    memory.size = 8192;
+    memory.size = DEFAULT_MEM_SIZE;
     memory.memory_array = malloc(memory.size);
 
     if (argc != 2) {
