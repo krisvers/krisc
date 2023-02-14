@@ -12,8 +12,10 @@ A non-existent RISC CPU emulator with poor design decisions.
 
 ### macro opcodes and their binary representation:
 
-- mov:      0b0000
-- add:      0b0001
+- mov:
+0b0000
+- add
+0b0001
 - sub:      0b0010
 - cmp:      0b0011
 - jmp:      0b0100
