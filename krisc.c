@@ -7,7 +7,7 @@
 
 #define DEFAULT_MEM_SIZE 8192
 
-uint8_t code[CODE_LENGTH] = { 0b00000110, 0x00, 0x01, 0b00000101, 0x00, 0x01,  };
+uint8_t code[CODE_LENGTH] = { 0b00000110, 0x00, 0x01, 0b00000111, 0x00, 0x01, 0, 0x69, 0x00, 0b10001000, 0, 0, 0b10000001, 0, 0 };
 uint8_t stepping = 0;
 
 struct Registers {
@@ -27,10 +27,18 @@ struct Memory {
     uint8_t * memory_array;
 } memory;
 
+void print_stack() {
+	for (int i = 0; registers.bp - i > registers.sp; i++) {
+		printf(" %x", memory.memory_array[registers.bp - i]);
+	}
+}
+
 void print_status() {
     system("clear");
-    printf("a: %x\tb: %x\tc: %x\td: %x\te: %x\tf: %x\nsp: %x\tbp: %x\tpc: %x\nopcode: %x\tvalue: %x\nerror: %x\tcarry: %x\toverflow: %x\tgreater: %x\tlesser: %x\nmem size: %x bytes\nstepping %x\n",
+    printf("a: %x\tb: %x\tc: %x\td: %x\te: %x\tf: %x\nsp: %x\tbp: %x\tpc: %x\nopcode: %x\tvalue: %x\nerror: %x\tcarry: %x\toverflow: %x\tgreater: %x\tlesser: %x\nmem size: %x bytes\nstepping %x\nstack:",
     registers.a, registers.b, registers.c, registers.d, registers.e, registers.f, registers.sp, registers.bp, registers.pc, memory.memory_array[registers.pc], memory.memory_array[registers.pc + 1] | memory.memory_array[registers.pc + 2] << 8, flags.error, flags.carry, flags.overflow, flags.greater, flags.lesser, memory.size, stepping);
+    print_stack();
+    putc('\n', stdout);
 }
 
 /*
@@ -423,18 +431,15 @@ int run_instruction(uint16_t ptr) {
                 }
 
                 if (registers.sp == registers.bp - 1) {
-                    *((uint16_t *) registers_array[opcode & 0b0111]) = memory.memory_array[registers.sp];
-                    registers.sp++;
+                    *((uint16_t *) registers_array[opcode & 0b0111]) = memory.memory_array[registers.sp++];
                     break;
                 }
 
-                *((uint16_t *) registers_array[opcode & 0b0111]) = memory.memory_array[registers.sp] << 8 | memory.memory_array[registers.sp + 1];
-                registers.sp += 2;
+                *((uint16_t *) registers_array[opcode & 0b0111]) = memory.memory_array[registers.sp++] << 8 | memory.memory_array[registers.sp++];
                 break;
             }
 
-            *((uint8_t *) registers_array[opcode & 0b0111]) = memory.memory_array[registers.sp];
-            registers.sp++;
+            *((uint8_t *) registers_array[opcode & 0b0111]) = memory.memory_array[registers.sp++];
             break;
 
         case 9:
