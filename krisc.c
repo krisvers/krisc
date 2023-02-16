@@ -7,7 +7,9 @@
 
 #define DEFAULT_MEM_SIZE 8192
 
-uint8_t code[CODE_LENGTH] = { 0b00010000, 0x01, 0x00, 0b00110000, 0xFF, 0x00, 0b01001000, 0, 0, 0b10101000, 0, 0 };
+uint8_t code[CODE_LENGTH] = {
+	#include "CODE.h"
+};
 uint8_t stepping = 1;
 
 struct Registers {
