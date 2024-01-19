@@ -1,0 +1,140 @@
+# general
+	- 32-bit addressing
+
+# registers
+	# general purpose
+		- ra .. rh
+
+	# pointers
+		- sp: stack pointer
+		- bp: stack base pointer
+		- ip: instruction pointer
+
+	# reserved
+		- t0..tN: temporary use register
+
+	# encoding
+		- ra .. rh: 0x01 .. 0x08
+		- sp: 0x10
+		- bp: 0x11
+		- ip: 0x12
+
+# instructions/opcodes
+	# mov
+		- opcode: 0x01
+		# modifiers
+			# dst/src
+				- 0x*0: dst = reg, src = reg
+				- 0x*1: dst = reg, src = immediate
+				- 0x*2: dst = reg, src = mem
+				- 0x*3: dst = mem, src = reg
+				- 0x*4: dst = mem, src = immediate
+				- 0x*5: dst = mem, src = mem
+			# size of immediate (unused if src is not immediate)
+				- 0x0*: if src is immediate, 8 bit immediate
+				- 0x1*: if src is immediate, 16 bit immediate
+				- 0x2*: if src is immediate, 32 bit immediate
+		# operands
+			# dst
+				- reg: 8 bit register encoding
+				- mem: 32 bit flat address
+			# src
+				- reg: 8 bit register encoding
+				- mem: 32 bit flat address
+				# immediate
+					- 8 bit: 8 bit immediate value
+					- 16 bit: 16 bit immediate value
+					- 32 bit: 32 bit immediate value
+
+	# add/sub
+		- opcode: 0x02/0x03
+		# modifiers
+			# dst/src/term
+				- 0x*0: dst = reg, src = reg, term = reg
+				- 0x*1: dst = reg, src = mem, term = reg
+				- 0x*2: dst = reg, src = reg, term = mem
+				- 0x*3: dst = reg, src = mem, term = mem
+				- 0x*4: dst = reg, src = reg, term = immediate
+				- 0x*5: dst = reg, src = mem, term = immediate
+				- 0x*6: dst = mem, src = reg, term = reg
+				- 0x*7: dst = mem, src = mem, term = reg
+				- 0x*8: dst = mem, src = reg, term = mem
+				- 0x*9: dst = mem, src = mem, term = mem
+				- 0x*A: dst = mem, src = reg, term = immediate
+				- 0x*B: dst = mem, src = mem, term = immediate
+			# size of immediate (unused if src is not immediate)
+				- 0x0*: if src is immediate, 8 bit immediate
+				- 0x1*: if src is immediate, 16 bit immediate
+				- 0x2*: if src is immediate, 32 bit immediate
+		# operands
+			# dst
+				- reg: 8 bit register encoding
+				- mem: 32 bit flat address
+			# src
+				- reg: 8 bit register encoding
+				- mem: 32 bit flat address
+			# term
+				- reg: 8 bit register encoding
+				- mem: 32 bit flat address
+				# immediate
+					- 8 bit: 8 bit immediate value
+					- 16 bit: 16 bit immediate value
+					- 32 bit: 32 bit immediate value
+
+	# mul/div
+		- opcode: 0x04/0x05
+		# modifiers
+			# dst/src/factor
+				- 0x*0: dst = reg, src = reg, factor = reg
+				- 0x*1: dst = reg, src = mem, factor = reg
+				- 0x*2: dst = reg, src = reg, factor = mem
+				- 0x*3: dst = reg, src = mem, factor = mem
+				- 0x*4: dst = reg, src = reg, factor = immediate
+				- 0x*5: dst = reg, src = mem, factor = immediate
+				- 0x*6: dst = mem, src = reg, factor = reg
+				- 0x*7: dst = mem, src = mem, factor = reg
+				- 0x*8: dst = mem, src = reg, factor = mem
+				- 0x*9: dst = mem, src = mem, factor = mem
+				- 0x*A: dst = mem, src = reg, factor = immediate
+				- 0x*B: dst = mem, src = mem, factor = immediate
+			# size of immediate (unused if src is not immediate)
+				- 0x0*: if src is immediate, 8 bit immediate
+				- 0x1*: if src is immediate, 16 bit immediate
+				- 0x2*: if src is immediate, 32 bit immediate
+		# operands
+			# dst
+				- reg: 8 bit register encoding
+				- mem: 32 bit flat address
+			# src
+				- reg: 8 bit register encoding
+				- mem: 32 bit flat address
+			# factor
+				- reg: 8 bit register encoding
+				- mem: 32 bit flat address
+				# immediate
+					- 8 bit: 8 bit immediate value
+					- 16 bit: 16 bit immediate value
+					- 32 bit: 32 bit immediate value
+
+	# jmp variants
+		- opcode 0x06
+		# modifiers
+			# address
+				- 0x*0: address = reg
+				- 0x*1: address = immediate
+				- 0x*2: address = 32-bit value from mem
+			# variant
+				- 0x0*: unconditional jmp
+				- 0x1*: jnz/jne
+				- 0x2*: jz/je
+				- 0x3*: jg/jnle
+				- 0x4*: jl/jnge
+				- 0x5*: jge/jnl
+				- 0x6*: jle/jng
+		# operands
+			# reg (serves as the comparator)
+				- reg: 8 bit register encoding
+			# address
+				- reg: 8 bit register encoding
+				- 32 bit: 32 bit immediate address
+				- mem: 32 bit address from memory
