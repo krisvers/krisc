@@ -133,6 +133,10 @@
 				- 0x4*: jl/jnge (using two's complement signed comparison)
 				- 0x5*: jge/jnl (using two's complement signed comparison)
 				- 0x6*: jle/jng (using two's complement signed comparison)
+				- 0x7*: jb/jnae (unsigned comparison)
+				- 0x8*: ja/jnbe (unsigned comparison)
+				- 0x9*: jbe/jna (unsigned comparison)
+				- 0xA*: jae/jnb (unsigned comparison)
 		# operands
 			# reg (serves as the comparator)
 				- reg: 8 bit register encoding
