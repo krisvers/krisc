@@ -1,5 +1,11 @@
 # general
+	- no bios
 	- 32-bit addressing
+	- little-endian
+	- invalid memory access resets the chip
+
+# boot
+	- code is initially loaded at 0x00001000
 
 # registers
 	# general purpose
@@ -10,14 +16,35 @@
 		- bp: stack base pointer
 		- ip: instruction pointer
 
-	# reserved
-		- t0..tN: temporary use register
-
 	# encoding
 		- ra .. rh: 0x01 .. 0x08
-		- sp: 0x10
-		- bp: 0x11
-		- ip: 0x12
+		- sp: 0x09
+		- bp: 0x0A
+		- ip: 0x0B
+
+# interrupts
+	- 256 possible interrupts per lookup address
+	- by default the lookup address is 0x00000000 and runs until 0x00000400
+	- lookup address holds 32 bit addresses to interrupt handlers
+	- if any address is 0x00000000, the interrupt is ignored unless it is a reserved interrupt, then it will halt the system
+	- act similar to x86 interrupts where registers can be treated as arguments depending on the interrupt
+	- when interrupt is called, the current ip is pushed to the stack and the ip is set to the interrupt handler in the lookup table
+
+	# reserved interrupts (if handler is 0x00000000, these will halt the system)
+		# 0x00: halt
+			- halts the system
+		# 0x01: divide by zero
+			- triggered on zero division
+		# 0x02: invalid instruction
+			- triggered on invalid instruction
+
+# system info
+	- 256 possible info numbers
+	- info numbers are 8 bit values
+	- info numbers are stored in any general purpose register depending on the info number
+
+	# 0x00: get system memory size
+		- returns 32 bit system memory size in rh as bytes
 
 # instructions/opcodes
 	# mov
@@ -26,21 +53,21 @@
 			# dst/src
 				- 0x*0: dst = reg, src = reg
 				- 0x*1: dst = reg, src = immediate
-				- 0x*2: dst = reg, src = mem
-				- 0x*3: dst = mem, src = reg
-				- 0x*4: dst = mem, src = immediate
-				- 0x*5: dst = mem, src = mem
-			# size of immediate (unused if src is not immediate)
-				- 0x0*: if src is immediate, 8 bit immediate
-				- 0x1*: if src is immediate, 16 bit immediate
-				- 0x2*: if src is immediate, 32 bit immediate
+				- 0x*2: dst = reg, src = mreg
+				- 0x*3: dst = mreg, src = reg
+				- 0x*4: dst = mreg, src = immediate
+				- 0x*5: dst = mreg, src = mreg
+			# size of src
+				- 0x0*: 8 bit sized src
+				- 0x1*: 16 bit sized src
+				- 0x2*: 32 bit sized src
 		# operands
 			# dst
 				- reg: 8 bit register encoding
-				- mem: 32 bit flat address
+				- mreg: 8 bit register encoding 32 bit flat address
 			# src
 				- reg: 8 bit register encoding
-				- mem: 32 bit flat address
+				- mreg: 8 bit register encoding 32 bit flat address
 				# immediate
 					- 8 bit: 8 bit immediate value
 					- 16 bit: 16 bit immediate value
@@ -51,31 +78,20 @@
 		# modifiers
 			# dst/src/term
 				- 0x*0: dst = reg, src = reg, term = reg
-				- 0x*1: dst = reg, src = mem, term = reg
-				- 0x*2: dst = reg, src = reg, term = mem
-				- 0x*3: dst = reg, src = mem, term = mem
-				- 0x*4: dst = reg, src = reg, term = immediate
-				- 0x*5: dst = reg, src = mem, term = immediate
-				- 0x*6: dst = mem, src = reg, term = reg
-				- 0x*7: dst = mem, src = mem, term = reg
-				- 0x*8: dst = mem, src = reg, term = mem
-				- 0x*9: dst = mem, src = mem, term = mem
-				- 0x*A: dst = mem, src = reg, term = immediate
-				- 0x*B: dst = mem, src = mem, term = immediate
-			# size of immediate (unused if src is not immediate)
-				- 0x0*: if src is immediate, 8 bit immediate
-				- 0x1*: if src is immediate, 16 bit immediate
-				- 0x2*: if src is immediate, 32 bit immediate
+				- 0x*1: dst = reg, src = reg, term = mreg
+				- 0x*2: dst = reg, src = reg, term = immediate
+			# size of term
+				- 0x0*: 8 bit
+				- 0x1*: 16 bit
+				- 0x2*: 32 bit
 		# operands
 			# dst
 				- reg: 8 bit register encoding
-				- mem: 32 bit flat address
 			# src
 				- reg: 8 bit register encoding
-				- mem: 32 bit flat address
 			# term
 				- reg: 8 bit register encoding
-				- mem: 32 bit flat address
+				- mreg: 8 bit register encoding holding 32 bit flat address
 				# immediate
 					- 8 bit: 8 bit immediate value
 					- 16 bit: 16 bit immediate value
@@ -86,31 +102,20 @@
 		# modifiers
 			# dst/src/factor
 				- 0x*0: dst = reg, src = reg, factor = reg
-				- 0x*1: dst = reg, src = mem, factor = reg
-				- 0x*2: dst = reg, src = reg, factor = mem
-				- 0x*3: dst = reg, src = mem, factor = mem
-				- 0x*4: dst = reg, src = reg, factor = immediate
-				- 0x*5: dst = reg, src = mem, factor = immediate
-				- 0x*6: dst = mem, src = reg, factor = reg
-				- 0x*7: dst = mem, src = mem, factor = reg
-				- 0x*8: dst = mem, src = reg, factor = mem
-				- 0x*9: dst = mem, src = mem, factor = mem
-				- 0x*A: dst = mem, src = reg, factor = immediate
-				- 0x*B: dst = mem, src = mem, factor = immediate
-			# size of immediate (unused if src is not immediate)
-				- 0x0*: if src is immediate, 8 bit immediate
-				- 0x1*: if src is immediate, 16 bit immediate
-				- 0x2*: if src is immediate, 32 bit immediate
+				- 0x*1: dst = reg, src = reg, factor = mreg
+				- 0x*2: dst = reg, src = reg, factor = immediate
+			# size of factor
+				- 0x0*: 8 bit
+				- 0x1*: 16 bit
+				- 0x2*: 32 bit
 		# operands
 			# dst
 				- reg: 8 bit register encoding
-				- mem: 32 bit flat address
 			# src
 				- reg: 8 bit register encoding
-				- mem: 32 bit flat address
 			# factor
 				- reg: 8 bit register encoding
-				- mem: 32 bit flat address
+				- mreg: 8 bit register encoding holding 32 bit flat address
 				# immediate
 					- 8 bit: 8 bit immediate value
 					- 16 bit: 16 bit immediate value
@@ -120,21 +125,220 @@
 		- opcode 0x06
 		# modifiers
 			# address
-				- 0x*0: address = reg
+				- 0x*0: address = 32-bit address from mreg
 				- 0x*1: address = immediate
-				- 0x*2: address = 32-bit value from mem
 			# variant
 				- 0x0*: unconditional jmp
 				- 0x1*: jnz/jne
 				- 0x2*: jz/je
-				- 0x3*: jg/jnle
-				- 0x4*: jl/jnge
-				- 0x5*: jge/jnl
-				- 0x6*: jle/jng
+				- 0x3*: jg/jnle (using two's complement signed comparison)
+				- 0x4*: jl/jnge (using two's complement signed comparison)
+				- 0x5*: jge/jnl (using two's complement signed comparison)
+				- 0x6*: jle/jng (using two's complement signed comparison)
 		# operands
 			# reg (serves as the comparator)
 				- reg: 8 bit register encoding
 			# address
-				- reg: 8 bit register encoding
+				- mreg: 32 bit address from register
 				- 32 bit: 32 bit immediate address
-				- mem: 32 bit address from memory
+
+	# and
+		- opcode: 0x07
+		# modifiers
+			# dst/src/mask
+				- 0x*0: dst = reg, src = reg, mask = reg
+				- 0x*1: dst = reg, src = reg, mask = mreg
+				- 0x*2: dst = reg, src = reg, mask = immediate
+		# operands
+			# dst
+				- reg: 8 bit register encoding
+			# src
+				- reg: 8 bit register encoding
+			# mask
+				- reg: 8 bit register encoding
+				- mreg: 8 bit register encoding holding 32 bit flat address
+				# immediate
+					- 8 bit: 8 bit immediate value
+					- 16 bit: 16 bit immediate value
+					- 32 bit: 32 bit immediate value
+
+	# or
+		- opcode: 0x08
+		# modifiers
+			# dst/src/mask
+				- 0x*0: dst = reg, src = reg, mask = reg
+				- 0x*1: dst = reg, src = reg, mask = mreg
+				- 0x*2: dst = reg, src = reg, mask = immediate
+		# operands
+			# dst
+				- reg: 8 bit register encoding
+			# src
+				- reg: 8 bit register encoding
+			# mask
+				- reg: 8 bit register encoding
+				- mreg: 8 bit register encoding holding 32 bit flat address
+				# immediate
+					- 8 bit: 8 bit immediate value
+					- 16 bit: 16 bit immediate value
+					- 32 bit: 32 bit immediate value
+
+	# not
+		- opcode: 0x09
+		# modifiers
+			# dst/src
+				- 0x*0: dst = reg, src = reg
+		# operands
+			# dst
+				- reg: 8 bit register encoding
+			# src
+				- reg: 8 bit register encoding
+
+	# xor
+		- opcode: 0x0A
+		# modifiers
+			# dst/src/mask
+				- 0x*0: dst = reg, src = reg, mask = reg
+				- 0x*1: dst = reg, src = reg, mask = mreg
+				- 0x*2: dst = reg, src = reg, mask = immediate
+		# operands
+			# dst
+				- reg: 8 bit register encoding
+			# src
+				- reg: 8 bit register encoding
+			# mask
+				- reg: 8 bit register encoding
+				- mreg: 8 bit register encoding holding 32 bit flat address
+				# immediate
+					- 8 bit: 8 bit immediate value
+					- 16 bit: 16 bit immediate value
+					- 32 bit: 32 bit immediate value
+
+	# shr
+		- opcode: 0x0B
+		# modifiers
+			# dst/src/shifter
+				- 0x*0: dst = reg, src = reg, shifter = reg
+				- 0x*1: dst = reg, src = reg, shifter = mreg
+				- 0x*2: dst = reg, src = reg, shifter = immediate
+		# operands
+			# dst
+				- reg: 8 bit register encoding
+			# src
+				- reg: 8 bit register encoding
+			# shifter
+				- reg: 8 bit register encoding
+				- mreg: 8 bit register encoding holding 32 bit flat address
+				# immediate
+					- 8 bit: 8 bit immediate value
+					- 16 bit: 16 bit immediate value
+					- 32 bit: 32 bit immediate value
+
+	# shl
+		- opcode: 0x0C
+		# modifiers
+			# dst/src/shifter
+				- 0x*0: dst = reg, src = reg, shifter = reg
+				- 0x*1: dst = reg, src = reg, shifter = mreg
+				- 0x*2: dst = reg, src = reg, shifter = immediate
+		# operands
+			# dst
+				- reg: 8 bit register encoding
+			# src
+				- reg: 8 bit register encoding
+			# shifter
+				- reg: 8 bit register encoding
+				- mreg: 8 bit register encoding holding 32 bit flat address
+				# immediate
+					- 8 bit: 8 bit immediate value
+					- 16 bit: 16 bit immediate value
+					- 32 bit: 32 bit immediate value
+
+	# push
+		- opcode: 0x0D
+		# modifiers
+			# size
+				- 0x00: 8 bit
+				- 0x01: 16 bit
+				- 0x02: 32 bit
+		# operands
+			# value: reg: 8 bit register encoding
+
+	# pop
+		- opcode: 0x0E
+		# modifiers
+			# size
+				- 0x00: 8 bit
+				- 0x01: 16 bit
+				- 0x02: 32 bit
+		# operands
+			# dst: reg: 8 bit register encoding
+
+	# in
+		- opcode: 0x0F
+		# modifiers
+			# dst/port
+				- 0x*0: dst = reg, port = reg
+				- 0x*1: dst = reg, port = immediate port address
+		# operands
+			- dst: reg: 8 bit register encoding
+			# port:
+				- reg: 8 bit register encoding holding port address
+				- immediate: 16 bit port address
+
+	# out
+		- opcode: 0x10
+		# modifiers
+			# src/port
+				- 0x*0: src = reg, port = reg
+				- 0x*1: src = reg, port = immediate port address
+				- 0x*0: src = immediate, port = reg
+				- 0x*1: src = immediate, port = immediate port address
+		# operands
+			# src:
+				- reg: 8 bit register encoding holding value
+				- immediate: 32 bit value
+			# port:
+				- reg: 8 bit register encoding holding port address
+				- immediate: 16 bit port address
+
+	# int (interrupt)
+		- opcode: 0x11
+		# modifiers
+			# int
+				- 0x*0: int = reg
+				- 0x*1: int = immediate
+		# operands
+			# int:
+				- reg: 8 bit register encoding holding interrupt number
+				- immediate: 8 bit interrupt number
+
+	# set (sets interrupt lookup address)
+		- opcode: 0x12
+		# modifiers
+			# int/lookup
+				- 0x*0: int = reg, lookup = reg
+				- 0x*1: int = reg, lookup = immediate
+				- 0x*2: int = immediate, lookup = reg
+				- 0x*3: int = immediate, lookup = immediate
+		# operands
+			# int:
+				- reg: 8 bit register encoding holding interrupt number
+				- immediate: 8 bit interrupt number
+			# handler:
+				- reg: 8 bit register encoding holding lookup address
+				- immediate: 32 bit lookup address
+
+	# info (gets info about the system)
+		- opcode: 0x13
+		# modifiers
+			# info
+				- 0x*0: info = reg
+				- 0x*1: info = immediate
+		# operands
+			# info:
+				- reg: 8 bit register encoding holding info number
+				- immediate: 8 bit info number
+
+	# nop
+		- opcode: 0x14
+		- wastes one clock cycle
