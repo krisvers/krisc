@@ -11,6 +11,9 @@
 	# general purpose
 		- ra .. rh
 
+	# system purpose for interrupt arguments and return values
+		- sa .. sh
+
 	# pointers
 		- sp: stack pointer
 		- bp: stack base pointer
@@ -18,9 +21,10 @@
 
 	# encoding
 		- ra .. rh: 0x01 .. 0x08
-		- sp: 0x09
-		- bp: 0x0A
-		- ip: 0x0B
+		- sa .. sh: 0x09 .. 0x10
+		- sp: 0x11
+		- bp: 0x12
+		- ip: 0x13
 
 # interrupts
 	- 256 possible interrupts per lookup address
@@ -29,14 +33,21 @@
 	- if any address is 0x00000000, the interrupt is ignored unless it is a reserved interrupt, then it will halt the system
 	- act similar to x86 interrupts where registers can be treated as arguments depending on the interrupt
 	- when interrupt is called, the current ip is pushed to the stack and the ip is set to the interrupt handler in the lookup table
+	# recommended that handlers should not modify general purpose registers
+		- arguments should be passed in through sa .. sh, and return values should be passed out through sa .. sh
 
 	# reserved interrupts (if handler is 0x00000000, these will halt the system)
+		# 0x00 through 0x20 are reserved
+
 		# 0x00: halt
 			- halts the system
 		# 0x01: divide by zero
 			- triggered on zero division
 		# 0x02: invalid instruction
 			- triggered on invalid instruction
+		# 0x03: port i/o triggered interrupt
+			- sa = port
+			- sb = value
 
 # system info
 	- 256 possible info numbers
@@ -133,10 +144,6 @@
 				- 0x4*: jl/jnge (using two's complement signed comparison)
 				- 0x5*: jge/jnl (using two's complement signed comparison)
 				- 0x6*: jle/jng (using two's complement signed comparison)
-				- 0x7*: jb/jnae (unsigned comparison)
-				- 0x8*: ja/jnbe (unsigned comparison)
-				- 0x9*: jbe/jna (unsigned comparison)
-				- 0xA*: jae/jnb (unsigned comparison)
 		# operands
 			# reg (serves as the comparator)
 				- reg: 8 bit register encoding
@@ -186,9 +193,6 @@
 
 	# not
 		- opcode: 0x09
-		# modifiers
-			# dst/src
-				- 0x*0: dst = reg, src = reg
 		# operands
 			# dst
 				- reg: 8 bit register encoding
