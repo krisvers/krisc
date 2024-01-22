@@ -279,36 +279,8 @@
 		# operands
 			# dst: reg: 8 bit register encoding
 
-	# in
-		- opcode: 0x0F
-		# modifiers
-			# dst/port
-				- 0x*0: dst = reg, port = reg
-				- 0x*1: dst = reg, port = immediate port address
-		# operands
-			- dst: reg: 8 bit register encoding
-			# port:
-				- reg: 8 bit register encoding holding port address
-				- immediate: 16 bit port address
-
-	# out
-		- opcode: 0x10
-		# modifiers
-			# src/port
-				- 0x*0: src = reg, port = reg
-				- 0x*1: src = reg, port = immediate port address
-				- 0x*0: src = immediate, port = reg
-				- 0x*1: src = immediate, port = immediate port address
-		# operands
-			# src:
-				- reg: 8 bit register encoding holding value
-				- immediate: 32 bit value
-			# port:
-				- reg: 8 bit register encoding holding port address
-				- immediate: 16 bit port address
-
 	# int (interrupt)
-		- opcode: 0x11
+		- opcode: 0x0F
 		# modifiers
 			# int
 				- 0x*0: int = reg
@@ -319,7 +291,7 @@
 				- immediate: 8 bit interrupt number
 
 	# set (sets interrupt lookup address)
-		- opcode: 0x12
+		- opcode: 0x10
 		# modifiers
 			# int/lookup
 				- 0x*0: int = reg, lookup = reg
@@ -335,7 +307,7 @@
 				- immediate: 32 bit lookup address
 
 	# info (gets info about the system)
-		- opcode: 0x13
+		- opcode: 0x11
 		# modifiers
 			# info
 				- 0x*0: info = reg
@@ -346,5 +318,5 @@
 				- immediate: 8 bit info number
 
 	# nop
-		- opcode: 0x14
+		- opcode: 0x12
 		- wastes one clock cycle
